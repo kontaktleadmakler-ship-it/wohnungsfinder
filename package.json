@@ -1,0 +1,11 @@
+{
+  "name": "wohnungsfinder",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @wohnungsfinder/api\" \"npm run dev -w @wohnungsfinder/web\"",
+    "build": "npm run build --workspaces",
+    "test": "npm run test -w @wohnungsfinder/api"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

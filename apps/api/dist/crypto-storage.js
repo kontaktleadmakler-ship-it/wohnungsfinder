@@ -1,0 +1,11 @@
+import crypto from 'node:crypto';
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { env } from './config.js';
+const s3 = new S3Client({ region: env.S3_REGION, endpoint: env.S3_ENDPOINT, forcePathStyle: Boolean(env.S3_ENDPOINT), credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY } });
+const master = Buffer.from(env.DOCUMENT_MASTER_KEY_BASE64, 'base64');
+function wrap(dek) { const iv = crypto.randomBytes(12); const c = crypto.createCipheriv('aes-256-gcm', master, iv); return Buffer.concat([iv, c.update(dek), c.final(), c.getAuthTag()]).toString('base64'); }
+function unwrap(value) { const b = Buffer.from(value, 'base64'), iv = b.subarray(0, 12), tag = b.subarray(b.length - 16), body = b.subarray(12, b.length - 16); const d = crypto.createDecipheriv('aes-256-gcm', master, iv); d.setAuthTag(tag); return Buffer.concat([d.update(body), d.final()]); }
+export async function encryptAndStore(owner, data, mimeType) { const dek = crypto.randomBytes(32), iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', dek, iv), encrypted = Buffer.concat([c.update(data), c.final()]), authTag = c.getAuthTag(), objectKey = `documents/${owner}/${crypto.randomUUID()}`; await s3.send(new PutObjectCommand({ Bucket: env.S3_BUCKET, Key: objectKey, Body: encrypted, ContentType: 'application/octet-stream', ServerSideEncryption: 'AES256' })); return { objectKey, encryptedDek: wrap(dek), iv: iv.toString('base64'), authTag: authTag.toString('base64'), mimeType, size: data.length }; }
+export async function decrypt(doc) { const out = await s3.send(new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: doc.objectKey })); const chunks = []; for await (const part of out.Body)
+    chunks.push(Buffer.from(part)); const d = crypto.createDecipheriv('aes-256-gcm', unwrap(doc.encryptedDek), Buffer.from(doc.iv, 'base64')); d.setAuthTag(Buffer.from(doc.authTag, 'base64')); return Buffer.concat([d.update(Buffer.concat(chunks)), d.final()]); }
+export const removeObject = (key) => s3.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));

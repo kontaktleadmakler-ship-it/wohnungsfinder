@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: wohnungsfinder-api
+    env: node
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/auth/me
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: DOCUMENT_MASTER_KEY_BASE64
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+  - type: cron
+    name: wohnungsfinder-matcher
+    env: node
+    rootDir: apps/worker
+    schedule: "*/30 * * * *"
+    buildCommand: npm install && npm run build
+    startCommand: npm run run
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: ALLOWED_FEED_URL
+        sync: false
