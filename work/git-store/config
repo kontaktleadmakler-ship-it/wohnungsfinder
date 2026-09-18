@@ -1,0 +1,12 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = true
+	symlinks = false
+	ignorecase = true
+[user]
+	name = kontaktleadmakler-ship-it
+	email = kontaktleadmakler-ship-it@users.noreply.github.com
+[remote "origin"]
+	url = https://github.com/kontaktleadmakler-ship-it/wohnungsfinder.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
